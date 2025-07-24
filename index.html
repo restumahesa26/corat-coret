@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruang Corat-Coret</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    
+    <!-- Menggunakan Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Menggunakan Google Fonts untuk tipografi -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* Gaya kustom untuk tema putih bersih */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            overflow: hidden; /* Mencegah scroll bar muncul di body */
+        }
+
+        /* Area Teks Full-Screen yang bisa digulir */
+        #scratchpad {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            resize: none;
+            color: #374151;
+            z-index: 1;
+            font-size: 1.125rem; /* 18px */
+            line-height: 1.75rem;
+            padding: 6rem 4rem 8rem 4rem; /* top, horizontal, bottom */
+            overflow-y: auto; /* Aktifkan scroll vertikal */
+            text-align: left;
+        }
+
+        #scratchpad::placeholder {
+            color: #9ca3af;
+            text-align: center;
+            font-size: 1.5rem;
+            line-height: 1.5;
+            position: absolute;
+            top: 25%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            max-width: 48rem; /* max-w-2xl */
+        }
+
+        /* Canvas untuk menggambar, menutupi seluruh layar */
+        #drawingCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            cursor: crosshair;
+            z-index: 10; 
+            pointer-events: none; 
+        }
+
+        /* Kontainer untuk menampung gambar dan emoji */
+        #element-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* Pembungkus setiap gambar agar bisa di-drag dan resize */
+        .image-wrapper {
+            position: absolute;
+            min-width: 50px;
+            min-height: 50px;
+            border: 2px dashed transparent;
+            cursor: move;
+            pointer-events: auto;
+        }
+        
+        .image-wrapper:hover {
+            border-color: #3b82f6;
+        }
+
+        .image-wrapper img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            user-select: none;
+        }
+
+        /* Handle untuk mengubah ukuran gambar */
+        .resize-handle {
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            width: 15px;
+            height: 15px;
+            background-color: #3b82f6;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: se-resize;
+        }
+        
+        /* Pembungkus untuk emoji */
+        .emoji-wrapper {
+            position: absolute;
+            cursor: move;
+            pointer-events: auto;
+            font-size: 3rem;
+            user-select: none;
+            padding: 5px;
+        }
+
+        /* Gaya umum untuk tombol di sudut */
+        .corner-button {
+            position: fixed;
+            z-index: 20;
+            width: 4rem;
+            height: 4rem;
+            border-radius: 9999px;
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .corner-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        #pencil-toggle { bottom: 1.5rem; right: 1.5rem; }
+        #pencil-toggle.active { background-color: #d1d5db; border-color: #9ca3af; }
+        #reset-btn { bottom: 1.5rem; left: 1.5rem; }
+        #reset-btn:active { background-color: #fecaca; border-color: #f87171; }
+        #upload-btn { top: 1.5rem; left: 1.5rem; }
+        #emoji-btn { top: 1.5rem; right: 1.5rem; }
+        
+        /* Panel pemilih emoji */
+        #emoji-picker {
+            position: fixed;
+            top: 6.5rem;
+            right: 1.5rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.75rem;
+            z-index: 21;
+            transform-origin: top right;
+        }
+        
+        .emoji-item {
+            cursor: pointer;
+            font-size: 1.5rem;
+            text-align: center;
+            transition: transform 0.1s ease;
+        }
+        
+        .emoji-item:hover {
+            transform: scale(1.2);
+        }
+        
+        /* Keyframes untuk animasi popup */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.95); }
+        }
+
+        .animate-fadeIn { animation: fadeIn 0.15s ease-out forwards; }
+        .animate-fadeOut { animation: fadeOut 0.15s ease-in forwards; }
+
+        /* Palet warna untuk pensil */
+        #color-palette {
+            position: fixed;
+            bottom: 2.25rem; /* Menyesuaikan posisi vertikal */
+            right: 6.5rem; /* Posisi di sebelah kiri tombol pensil */
+            display: flex;
+            align-items: center;
+            gap: 0.75rem; /* Jarak antar warna */
+            background-color: #f3f4f6;
+            padding: 0.5rem;
+            border-radius: 9999px;
+            z-index: 20;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+        }
+        
+        .color-swatch {
+            width: 1.75rem; /* Ukuran lingkaran warna */
+            height: 1.75rem;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.1s ease;
+        }
+        
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+        
+        .color-swatch.active {
+            border-color: white;
+            box-shadow: 0 0 0 2px currentColor; /* Memberi outline dengan warna yang sama */
+        }
+        
+        #eraser-btn {
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #eraser-btn.active {
+            background-color: #d1d5db;
+        }
+
+		.hidden {
+			display: none !important;
+		}
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Header Baru -->
+    <header class="fixed top-0 left-0 w-full p-6 flex justify-center items-center z-10 pointer-events-none">
+        <h1 class="text-2xl font-bold text-gray-800">Ruang Corat-Coret</h1>
+    </header>
+
+    <!-- Area Teks Full-Screen -->
+    <textarea 
+        id="scratchpad"
+        placeholder="Tuangkan isi kepalamu di sini..."
+        aria-label="Area untuk corat-coret teks"
+    ></textarea>
+
+    <!-- Kontainer untuk gambar dan emoji -->
+    <div id="element-container"></div>
+
+    <!-- Canvas untuk Menggambar -->
+    <canvas id="drawingCanvas"></canvas>
+    
+    <!-- Panel Emoji (tersembunyi secara default) -->
+    <div id="emoji-picker" class="hidden"></div>
+
+    <!-- Tombol Upload Gambar -->
+    <button id="upload-btn" class="corner-button" aria-label="Upload gambar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+    </button>
+    <input type="file" id="image-input" class="hidden" accept="image/*">
+    
+    <!-- Tombol Emoji -->
+    <button id="emoji-btn" class="corner-button" aria-label="Pilih emoji">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+    </button>
+
+    <!-- Tombol Reset -->
+    <button id="reset-btn" class="corner-button" aria-label="Reset halaman">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+    </button>
+    
+    <!-- Palet Warna dan Penghapus -->
+    <div id="color-palette" class="hidden">
+        <div id="eraser-btn" aria-label="Penghapus">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.42 4.58a2.1 2.1 0 0 0-2.97 0L7.85 13.15a2.1 2.1 0 0 0 0 2.97l4.95 4.95a2.1 2.1 0 0 0 2.97 0l9.6-9.62a2.1 2.1 0 0 0 0-2.97L20.42 4.58z"></path><path d="M5.5 16.5l-1.5 1.5"></path><path d="M11.5 10.5l-1.5 1.5"></path><path d="M17.5 4.5l-1.5 1.5"></path><path d="m22 2-6 6"></path></svg>
+        </div>
+    </div>
+
+    <!-- Tombol Pensil -->
+    <button id="pencil-toggle" class="corner-button" aria-label="Aktifkan mode menggambar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+    </button>
+    
+    <!-- Footer Baru -->
+    <footer style="bottom: 1.75rem; left: 6rem; right: 6rem; z-index: 19; pointer-events: none;" class="fixed text-center text-gray-400 text-xs">
+        <p>Dibuat dengan ❤️ untuk para kreator di seluruh dunia.</p>
+        <p class="mt-1">&copy; 2025 Mufti Restu Mahesa. Semua Hak Cipta Dilindungi.</p>
+    </footer>
+
+    <script>
+        window.onload = function() {
+            // Mengambil elemen dari DOM
+            const pencilBtn = document.getElementById('pencil-toggle');
+            const resetBtn = document.getElementById('reset-btn');
+            const uploadBtn = document.getElementById('upload-btn');
+            const imageInput = document.getElementById('image-input');
+            const emojiBtn = document.getElementById('emoji-btn');
+            const emojiPicker = document.getElementById('emoji-picker');
+            const colorPalette = document.getElementById('color-palette');
+            const eraserBtn = document.getElementById('eraser-btn');
+            const elementContainer = document.getElementById('element-container');
+            const canvas = document.getElementById('drawingCanvas');
+            const scratchpad = document.getElementById('scratchpad');
+            const ctx = canvas.getContext('2d');
+
+            let isDrawingMode = false;
+            let isPainting = false;
+            let isErasing = false;
+
+            const emojis = ['😀', '😂', '😍', '🤔', '🎉', '👍', '❤️', '🚀', '🔥', '💡', '💯', '🙏', '✨', '💀', '👻', '👽', '👋', '👀'];
+            const colors = ['#374151', '#ef4444', '#3b82f6', '#22c55e', '#f97316', '#a855f7']; // Hitam, Merah, Biru, Hijau, Oranye, Ungu
+            
+            function populateEmojiPicker() {
+                if (emojiPicker.children.length === 0) {
+                    emojis.forEach(emoji => {
+                        const emojiEl = document.createElement('div');
+                        emojiEl.classList.add('emoji-item');
+                        emojiEl.textContent = emoji;
+                        emojiEl.addEventListener('click', () => {
+                            createEmojiOnCanvas(emoji);
+                            hideEmojiPicker();
+                        });
+                        emojiPicker.appendChild(emojiEl);
+                    });
+                }
+            }
+            
+            // --- Logika Palet Warna dan Penghapus ---
+            function populateColorPalette() {
+                colors.forEach((color, index) => {
+                    const swatch = document.createElement('div');
+                    swatch.classList.add('color-swatch');
+                    swatch.style.backgroundColor = color;
+                    swatch.style.color = color;
+                    swatch.dataset.color = color;
+                    
+                    if (index === 0) swatch.classList.add('active');
+
+                    swatch.addEventListener('click', (e) => {
+                        isErasing = false;
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.lineWidth = 3;
+                        const selectedColor = e.target.dataset.color;
+                        ctx.strokeStyle = selectedColor;
+                        
+                        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+                        eraserBtn.classList.remove('active');
+                        e.target.classList.add('active');
+                    });
+                    colorPalette.appendChild(swatch);
+                });
+            }
+            
+            eraserBtn.addEventListener('click', () => {
+                isErasing = true;
+                eraserBtn.classList.add('active');
+                document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.lineWidth = 20; // Ukuran penghapus lebih besar
+            });
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                
+                if (!isErasing) {
+                    const activeColor = document.querySelector('.color-swatch.active')?.dataset.color || colors[0];
+                    ctx.strokeStyle = activeColor;
+                    ctx.lineWidth = 3;
+                    ctx.globalCompositeOperation = 'source-over';
+                } else {
+                    ctx.lineWidth = 20;
+                    ctx.globalCompositeOperation = 'destination-out';
+                }
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            }
+
+            function resetAll() {
+                scratchpad.value = '';
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                elementContainer.innerHTML = '';
+            }
+
+            // Inisialisasi
+            populateColorPalette();
+            resizeCanvas();
+            populateEmojiPicker();
+            window.addEventListener('resize', resizeCanvas);
+            resetBtn.addEventListener('click', resetAll);
+
+            // --- Logika Emoji dengan Animasi ---
+            function showEmojiPicker() {
+                emojiPicker.classList.remove('hidden');
+                emojiPicker.classList.remove('animate-fadeOut');
+                emojiPicker.classList.add('animate-fadeIn');
+            }
+
+            function hideEmojiPicker() {
+                if (emojiPicker.classList.contains('hidden')) return;
+                emojiPicker.classList.remove('animate-fadeIn');
+                emojiPicker.classList.add('animate-fadeOut');
+                emojiPicker.addEventListener('animationend', (e) => {
+                    if (e.animationName === 'fadeOut') {
+                        emojiPicker.classList.add('hidden');
+                    }
+                }, { once: true });
+            }
+
+            emojiBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (emojiPicker.classList.contains('hidden')) {
+                    showEmojiPicker();
+                } else {
+                    hideEmojiPicker();
+                }
+            });
+
+            emojiPicker.addEventListener('click', (e) => e.stopPropagation());
+            window.addEventListener('click', hideEmojiPicker);
+
+            function createEmojiOnCanvas(emoji) {
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('emoji-wrapper');
+                wrapper.textContent = emoji;
+                elementContainer.appendChild(wrapper);
+                wrapper.style.left = `${(window.innerWidth - 50) / 2}px`;
+                wrapper.style.top = `${(window.innerHeight - 50) / 2}px`;
+                makeDraggable(wrapper);
+            }
+
+            // --- Logika Gambar (Upload, Drag, Resize) ---
+            function loadImage(file) {
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => createImageOnCanvas(e.target.result);
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            function createImageOnCanvas(src) {
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('image-wrapper');
+                const img = document.createElement('img');
+                img.src = src;
+                const resizeHandle = document.createElement('div');
+                resizeHandle.classList.add('resize-handle');
+                wrapper.appendChild(img);
+                wrapper.appendChild(resizeHandle);
+                elementContainer.appendChild(wrapper);
+                wrapper.style.left = `${(window.innerWidth - 200) / 2}px`;
+                wrapper.style.top = `${(window.innerHeight - 200) / 2}px`;
+                wrapper.style.width = '200px';
+                makeDraggable(wrapper);
+                makeResizable(wrapper, resizeHandle);
+            }
+            
+            uploadBtn.addEventListener('click', () => imageInput.click());
+            imageInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) loadImage(e.target.files[0]);
+            });
+
+            document.body.addEventListener('dragover', (e) => e.preventDefault());
+            document.body.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (e.dataTransfer.files.length > 0) loadImage(e.dataTransfer.files[0]);
+            });
+
+            function makeDraggable(element) {
+                let offsetX, offsetY;
+                const onMouseDown = (e) => {
+                    if (e.target.classList.contains('resize-handle')) return;
+                    e.preventDefault();
+                    
+                    const event = e.touches ? e.touches[0] : e;
+                    offsetX = event.clientX - element.offsetLeft;
+                    offsetY = event.clientY - element.offsetTop;
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                    document.addEventListener('touchmove', onMouseMove);
+                    document.addEventListener('touchend', onMouseUp);
+                };
+
+                const onMouseMove = (e) => {
+                    const event = e.touches ? e.touches[0] : e;
+                    element.style.left = `${event.clientX - offsetX}px`;
+                    element.style.top = `${event.clientY - offsetY}px`;
+                };
+
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    document.removeEventListener('touchmove', onMouseMove);
+                    document.removeEventListener('touchend', onMouseUp);
+                };
+                
+                element.addEventListener('mousedown', onMouseDown);
+                element.addEventListener('touchstart', onMouseDown);
+            }
+            
+            function makeResizable(element, handle) {
+                let startX, startY, startWidth, startHeight;
+                handle.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
+                    startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
+
+                function onMouseMove(e) {
+                    const newWidth = startWidth + (e.clientX - startX);
+                    const newHeight = startHeight + (e.clientY - startY);
+                    element.style.width = `${newWidth > 50 ? newWidth : 50}px`;
+                    element.style.height = `${newHeight > 50 ? newHeight : 50}px`;
+                }
+
+                function onMouseUp() {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }
+            }
+
+            // --- Logika Menggambar ---
+            function getPaintPosition(event) {
+                const eventPos = event.touches ? event.touches[0] : event;
+                return { x: eventPos.clientX, y: eventPos.clientY };
+            }
+
+            function startPosition(event) {
+                if (!isDrawingMode) return;
+                event.preventDefault();
+                isPainting = true;
+                const { x, y } = getPaintPosition(event);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            }
+
+            function finishedPosition() {
+                isPainting = false;
+                ctx.beginPath();
+            }
+
+            function draw(event) {
+                if (!isPainting || !isDrawingMode) return;
+                event.preventDefault();
+                const { x, y } = getPaintPosition(event);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
+
+            canvas.addEventListener('mousedown', startPosition);
+            canvas.addEventListener('mouseup', finishedPosition);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseleave', finishedPosition);
+            canvas.addEventListener('touchstart', startPosition);
+            canvas.addEventListener('touchend', finishedPosition);
+            canvas.addEventListener('touchmove', draw);
+
+            pencilBtn.addEventListener('click', () => {
+                isDrawingMode = !isDrawingMode;
+                pencilBtn.classList.toggle('active', isDrawingMode);
+                canvas.style.pointerEvents = isDrawingMode ? 'auto' : 'none';
+                
+                // Tampilkan atau sembunyikan palet warna
+                colorPalette.classList.toggle('hidden', !isDrawingMode);
+            });
+        };
+    </script>
+</body>
+</html>
