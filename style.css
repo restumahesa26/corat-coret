@@ -1,0 +1,229 @@
+/* Gaya kustom untuk tema putih bersih */
+body {
+	font-family: 'Inter', sans-serif;
+	background-color: #ffffff;
+	overflow: hidden; /* Mencegah scroll bar muncul di body */
+}
+
+/* Area Teks Full-Screen yang bisa digulir */
+#scratchpad {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: transparent;
+	border: none;
+	outline: none;
+	resize: none;
+	color: #374151;
+	z-index: 1;
+	font-size: 1.125rem; /* 18px */
+	line-height: 1.75rem;
+	padding: 6rem 4rem 8rem 4rem; /* top, horizontal, bottom */
+	overflow-y: auto; /* Aktifkan scroll vertikal */
+	text-align: left;
+}
+
+#scratchpad::placeholder {
+	color: #9ca3af;
+	text-align: center;
+	font-size: 1.5rem;
+	line-height: 1.5;
+	position: absolute;
+	top: 25%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 100%;
+	max-width: 48rem; /* max-w-2xl */
+}
+
+/* Canvas untuk menggambar, menutupi seluruh layar */
+#drawingCanvas {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	cursor: crosshair;
+	z-index: 10; 
+	pointer-events: none; 
+}
+
+/* Kontainer untuk menampung gambar dan emoji */
+#element-container {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 5;
+	pointer-events: none;
+}
+
+/* Pembungkus setiap gambar agar bisa di-drag dan resize */
+.image-wrapper {
+	position: absolute;
+	min-width: 50px;
+	min-height: 50px;
+	border: 2px dashed transparent;
+	cursor: move;
+	pointer-events: auto;
+}
+
+.image-wrapper:hover {
+	border-color: #3b82f6;
+}
+
+.image-wrapper img {
+	width: 100%;
+	height: 100%;
+	display: block;
+	user-select: none;
+}
+
+/* Handle untuk mengubah ukuran gambar */
+.resize-handle {
+	position: absolute;
+	bottom: -5px;
+	right: -5px;
+	width: 15px;
+	height: 15px;
+	background-color: #3b82f6;
+	border: 2px solid white;
+	border-radius: 50%;
+	cursor: se-resize;
+}
+
+/* Pembungkus untuk emoji */
+.emoji-wrapper {
+	position: absolute;
+	cursor: move;
+	pointer-events: auto;
+	font-size: 3rem;
+	user-select: none;
+	padding: 5px;
+}
+
+/* Gaya umum untuk tombol di sudut */
+.corner-button {
+	position: fixed;
+	z-index: 20;
+	width: 4rem;
+	height: 4rem;
+	border-radius: 9999px;
+	background-color: #f3f4f6;
+	border: 1px solid #e5e7eb;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+	transition: all 0.2s ease-in-out;
+}
+
+.corner-button:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+#pencil-toggle { bottom: 1.5rem; right: 1.5rem; }
+#pencil-toggle.active { background-color: #d1d5db; border-color: #9ca3af; }
+#reset-btn { bottom: 1.5rem; left: 1.5rem; }
+#reset-btn:active { background-color: #fecaca; border-color: #f87171; }
+#upload-btn { top: 1.5rem; left: 1.5rem; }
+#emoji-btn { top: 1.5rem; right: 1.5rem; }
+
+/* Panel pemilih emoji */
+#emoji-picker {
+	position: fixed;
+	top: 6.5rem;
+	right: 1.5rem;
+	background: white;
+	border-radius: 16px;
+	box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+	padding: 1rem;
+	display: grid;
+	grid-template-columns: repeat(6, 1fr);
+	gap: 0.75rem;
+	z-index: 21;
+	transform-origin: top right;
+}
+
+.emoji-item {
+	cursor: pointer;
+	font-size: 1.5rem;
+	text-align: center;
+	transition: transform 0.1s ease;
+}
+
+.emoji-item:hover {
+	transform: scale(1.2);
+}
+
+/* Keyframes untuk animasi popup */
+@keyframes fadeIn {
+	from { opacity: 0; transform: scale(0.95); }
+	to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeOut {
+	from { opacity: 1; transform: scale(1); }
+	to { opacity: 0; transform: scale(0.95); }
+}
+
+.animate-fadeIn { animation: fadeIn 0.15s ease-out forwards; }
+.animate-fadeOut { animation: fadeOut 0.15s ease-in forwards; }
+
+/* Palet warna untuk pensil */
+#color-palette {
+	position: fixed;
+	bottom: 2.25rem; /* Menyesuaikan posisi vertikal */
+	right: 6.5rem; /* Posisi di sebelah kiri tombol pensil */
+	display: flex;
+	align-items: center;
+	gap: 0.75rem; /* Jarak antar warna */
+	background-color: #f3f4f6;
+	padding: 0.5rem;
+	border-radius: 9999px;
+	z-index: 20;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+	transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.color-swatch {
+	width: 1.75rem; /* Ukuran lingkaran warna */
+	height: 1.75rem;
+	border-radius: 50%;
+	cursor: pointer;
+	border: 2px solid transparent;
+	transition: transform 0.1s ease;
+}
+
+.color-swatch:hover {
+	transform: scale(1.1);
+}
+
+.color-swatch.active {
+	border-color: white;
+	box-shadow: 0 0 0 2px currentColor; /* Memberi outline dengan warna yang sama */
+}
+
+#eraser-btn {
+	width: 2.5rem;
+	height: 2.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: background-color 0.2s;
+}
+#eraser-btn.active {
+	background-color: #d1d5db;
+}
+
+.hidden {
+	display: none !important;
+}
