@@ -1,3 +1,15 @@
+// --- NEW: Anti-Copy/Paste Measures ---
+// Disable right-click menu
+document.addEventListener('contextmenu', event => event.preventDefault());
+// Disable DevTools shortcuts
+document.addEventListener('keydown', function (e) {
+	if (e.key === 'F12' || 
+		(e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+		(e.ctrlKey && e.key === 'U')) {
+		e.preventDefault();
+	}
+});
+
 window.onload = function() {
 	// Mengambil elemen dari DOM
 	const pencilBtn = document.getElementById('pencil-toggle');
